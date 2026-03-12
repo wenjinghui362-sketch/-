@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>句子记忆记录</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+
+        h1 { margin-top: 0; font-size: 24px; color: #1e293b; }
+        h2 { font-size: 18px; margin-top: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            resize: none;
+            box-sizing: border-box;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+
+        .add { background: #2563eb; color: white; }
+        .export { background: #16a34a; color: white; }
+
+        .item {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 15px 0;
+        }
+
+        .sentence {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+        }
+
+        .count {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .controls button {
+            font-size: 12px;
+            padding: 4px 10px;
+            background: #f1f5f9;
+            color: #475569;
+            margin-right: 5px;
+        }
+
+        .controls button:first-child { background: #dcfce7; color: #166534; }
+        .controls button:last-child { color: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>句子记录</h1>
+    <textarea id="sentenceInput" placeholder="输入你想记忆的句子..."></textarea>
+    <div style="margin-top: 5px;">
+        <button class="add" onclick="addSentence()">添加句子</button>
+        <button class="export" onclick="exportData()">导出 JSON</button>
+    </div>
+
+    <h2>记录列表</h2>
+    <div id="list"></div>
+</div>
+
+<script>
+    // 初始化数据
+    let data = JSON.parse(localStorage.getItem("sentenceMemory") || "[]");
+
+    function save() {
+        localStorage.setItem("sentenceMemory", JSON.stringify(data));
+        render();
+    }
+
+    function addSentence() {
+        let input = document.getElementById("sentenceInput");
+        let text = input.value.trim();
+        if(!text) return;
+
+        data.unshift({
+            text: text,
+            count: 0,
+            time: new Date().toLocaleString()
+        });
+
+        input.value = "";
+        save();
+    }
+
+    function repeat(index) {
+        data[index].count += 1;
+        save();
+    }
+
+    function removeItem(index) {
+        if(confirm("确定要删除这条记录吗？")) {
+            data.splice(index, 1);
+            save();
+        }
+    }
+
+    function editItem(index) {
+        let newText = prompt("编辑句子内容：", data[index].text);
+        if(newText !== null && newText.trim() !== "") {
+            data[index].text = newText.trim();
+            save();
+        }
+    }
+
+    function exportData() {
+        if(data.length === 0) return alert("目前没有可导出的数据");
+        let blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = `sentence-data-${new Date().toLocaleDateString()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function render() {
+        let list = document.getElementById("list");
+        list.innerHTML = data.length === 0 ? '<p style="color: #94a3b8; font-size: 14px;">列表空空如也，快去添加吧！</p>' : "";
+
+        data.forEach((item, i) => {
+            let div = document.createElement("div");
+            div.className = "item";
+            div.innerHTML = `
+                <div class="sentence">${item.text}</div>
+                <div class="count">复习次数：<strong>${item.count}</strong></div>
+                <div class="controls">
+                    <button onclick="repeat(${i})">打卡 +1</button>
+                    <button onclick="editItem(${i})">编辑</button>
+                    <button onclick="removeItem(${i})">删除</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // 初始渲染
+    render();
+</script>
+
+</body>
+</html>
